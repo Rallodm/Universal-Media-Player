@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Media Player Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .player-container {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .media-display {
+            position: relative;
+            background: #000;
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .media-element {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .drop-zone {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.dragover {
+            background: linear-gradient(135deg, #7c8ff0 0%, #8a5cb8 100%);
+            transform: scale(1.02);
+        }
+
+        .drop-zone.hidden {
+            display: none;
+        }
+
+        .drop-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .drop-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .drop-subtext {
+            opacity: 0.9;
+            text-align: center;
+            max-width: 400px;
+            line-height: 1.5;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px;
+            width: 0%;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            background: #764ba2;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .progress-bar:hover .progress-fill::after {
+            opacity: 1;
+        }
+
+        .control-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .control-btn.play-btn {
+            width: 55px;
+            height: 55px;
+            font-size: 1.3rem;
+        }
+
+        .time-display {
+            color: #666;
+            font-size: 0.9rem;
+            font-family: 'Courier New', monospace;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .volume-slider {
+            width: 100px;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            -webkit-appearance: none;
+            appearance: none;
+            outline: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #764ba2;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            background: #764ba2;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .file-input-wrapper {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .media-info {
+            padding: 15px 20px;
+            background: #f8f8f8;
+            border-top: 1px solid #e0e0e0;
+            display: none;
+        }
+
+        .media-info.show {
+            display: block;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #333;
+        }
+
+        .error-message {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 10;
+        }
+
+        .error-content {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .error-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .error-title {
+            font-size: 1.5rem;
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+
+        .error-text {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .loading-spinner {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 5;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .playlist {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px 20px;
+            background: #f8f8f8;
+            border-top: 1px solid #e0e0e0;
+            display: none;
+        }
+
+        .playlist.show {
+            display: block;
+        }
+
+        .playlist-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .playlist-item:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .playlist-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .control-buttons {
+                justify-content: center;
+            }
+            
+            .volume-control {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="player-container">
+        <div class="header">
+            <h1>🎵 Universal Media Player</h1>
+            <p>Supports MP4, WebM, MP3, OGG, WAV and more</p>
+        </div>
+
+        <div class="media-display" id="mediaDisplay">
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-icon">📁</div>
+                <div class="drop-text">Drop Media Files Here</div>
+                <div class="drop-subtext">
+                    Or click to browse<br>
+                    Supports video, audio, and image files
+                </div>
+            </div>
+        </div>
+
+        <div class="media-info" id="mediaInfo">
+            <div class="info-row">
+                <span class="info-label">File:</span>
+                <span class="info-value" id="fileName">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Type:</span>
+                <span class="info-value" id="fileType">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Size:</span>
+                <span class="info-value" id="fileSize">-</span>
+            </div>
+        </div>
+
+        <div class="controls" id="controls" style="display: none;">
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="control-buttons">
+                <div class="button-group">
+                    <button class="control-btn" id="prevBtn" title="Previous">⏮</button>
+                    <button class="control-btn play-btn" id="playBtn" title="Play">▶</button>
+                    <button class="control-btn" id="nextBtn" title="Next">⏭</button>
+                </div>
+                
+                <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
+                
+                <div class="volume-control">
+                    <button class="control-btn" id="muteBtn" title="Mute">🔊</button>
+                    <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="70">
+                </div>
+            </div>
+        </div>
+
+        <div class="playlist" id="playlist"></div>
+
+        <div class="file-input-wrapper">
+            <button class="file-btn" onclick="document.getElementById('fileInput').click()">
+                <span>📂</span>
+                <span>Choose Files</span>
+            </button>
+            <input type="file" id="fileInput" class="file-input" multiple accept="video/*,audio/*,image/*">
+        </div>
+    </div>
+
+    <script>
+        class MediaPlayer {
+            constructor() {
+                this.currentMedia = null;
+                this.playlist = [];
+                this.currentIndex = 0;
+                this.isPlaying = false;
+                
+                this.initElements();
+                this.bindEvents();
+            }
+
+            initElements() {
+                this.mediaDisplay = document.getElementById('mediaDisplay');
+                this.dropZone = document.getElementById('dropZone');
+                this.controls = document.getElementById('controls');
+                this.playBtn = document.getElementById('playBtn');
+                this.prevBtn = document.getElementById('prevBtn');
+                this.nextBtn = document.getElementById('nextBtn');
+                this.muteBtn = document.getElementById('muteBtn');
+                this.progressBar = document.getElementById('progressBar');
+                this.progressFill = document.getElementById('progressFill');
+                this.volumeSlider = document.getElementById('volumeSlider');
+                this.timeDisplay = document.getElementById('timeDisplay');
+                this.fileInput = document.getElementById('fileInput');
+                this.playlistEl = document.getElementById('playlist');
+                this.mediaInfo = document.getElementById('mediaInfo');
+            }
+
+            bindEvents() {
+                // Drag and drop
+                this.dropZone.addEventListener('click', () => this.fileInput.click());
+                this.dropZone.addEventListener('dragover', this.handleDragOver.bind(this));
+                this.dropZone.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                this.dropZone.addEventListener('drop', this.handleDrop.bind(this));
+                
+                // File input
+                this.fileInput.addEventListener('change', (e) => this.handleFiles(e.target.files));
+                
+                // Controls
+                this.playBtn.addEventListener('click', () => this.togglePlay());
+                this.prevBtn.addEventListener('click', () => this.playPrevious());
+                this.nextBtn.addEventListener('click', () => this.playNext());
+                this.muteBtn.addEventListener('click', () => this.toggleMute());
+                this.volumeSlider.addEventListener('input', (e) => this.setVolume(e.target.value));
+                this.progressBar.addEventListener('click', (e) => this.seek(e));
+                
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                this.dropZone.classList.add('dragover');
+            }
+
+            handleDragLeave(e) {
+                e.preventDefault();
+                this.dropZone.classList.remove('dragover');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                this.dropZone.classList.remove('dragover');
+                this.handleFiles(e.dataTransfer.files);
+            }
+
+            handleFiles(files) {
+                const mediaFiles = Array.from(files).filter(file => 
+                    file.type.startsWith('video/') || 
+                    file.type.startsWith('audio/') || 
+                    file.type.startsWith('image/')
+                );
+                
+                if (mediaFiles.length === 0) {
+                    this.showError('No supported media files found');
+                    return;
+                }
+                
+                this.playlist = mediaFiles;
+                this.currentIndex = 0;
+                this.loadMedia(mediaFiles[0]);
+                this.updatePlaylist();
+            }
+
+            loadMedia(file) {
+                if (this.currentMedia) {
+                    this.currentMedia.remove();
+                }
+                
+                const type = file.type.split('/')[0];
+                let element;
+                
+                if (type === 'image') {
+                    element = document.createElement('img');
+                    this.controls.style.display = 'none';
+                } else {
+                    element = document.createElement(type);
+                    element.controls = false;
+                    this.controls.style.display = 'block';
+                }
+                
+                element.className = 'media-element';
+                element.src = URL.createObjectURL(file);
+                
+                if (type !== 'image') {
+                    element.addEventListener('loadedmetadata', () => this.onMediaLoaded());
+                    element.addEventListener('timeupdate', () => this.updateProgress());
+                    element.addEventListener('ended', () => this.playNext());
+                    element.addEventListener('error', (e) => this.handleMediaError(e));
+                }
+                
+                this.currentMedia = element;
+                this.mediaDisplay.appendChild(element);
+                this.dropZone.classList.add('hidden');
+                
+                this.updateMediaInfo(file);
+            }
+
+            handleMediaError(e) {
+                const error = e.target.error;
+                let message = 'Unable to play this media file';
+                
+                if (error) {
+                    switch(error.code) {
+                        case 1: // MEDIA_ERR_ABORTED
+                            message = 'Media playback was aborted';
+                            break;
+                        case 2: // MEDIA_ERR_NETWORK
+                            message = 'Network error while loading media';
+                            break;
+                        case 3: // MEDIA_ERR_DECODE
+                            message = 'Media decoding failed';
+                            break;
+                        case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+                            message = 'Media format not supported';
+                            break;
+                    }
+                }
+                
+                this.showError(message);
+            }
+
+            showError(message) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.innerHTML = `
+                    <div class="error-content">
+                        <div class="error-icon">⚠️</div>
+                        <div class="error-title">Error</div>
+                        <div class="error-text">${message}</div>
+                        <button class="file-btn" onclick="player.clearError()">Try Again</button>
+                    </div>
+                `;
+                this.mediaDisplay.appendChild(errorDiv);
+            }
+
+            clearError() {
+                const error = this.mediaDisplay.querySelector('.error-message');
+                if (error) error.remove();
+                this.dropZone.classList.remove('hidden');
+            }
+
+            updateMediaInfo(file) {
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileType').textContent = file.type || 'Unknown';
+                document.getElementById('fileSize').textContent = this.formatFileSize(file.size);
+                this.mediaInfo.classList.add('show');
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            onMediaLoaded() {
+                this.updateTimeDisplay();
+            }
+
+            togglePlay() {
+                if (!this.currentMedia || this.currentMedia.tagName === 'IMG') return;
+                
+                if (this.isPlaying) {
+                    this.currentMedia.pause();
+                    this.playBtn.innerHTML = '▶';
+                } else {
+                    this.currentMedia.play().catch(e => {
+                        console.error('Playback failed:', e);
+                        this.showError('Unable to play media');
+                    });
+                    this.playBtn.innerHTML = '⏸';
+                }
+                this.isPlaying = !this.isPlaying;
+            }
+
+            playPrevious() {
+                if (this.playlist.length > 0) {
+                    this.currentIndex = (this.currentIndex - 1 + this.playlist.length) % this.playlist.length;
+                    this.loadMedia(this.playlist[this.currentIndex]);
+                    this.updatePlaylist();
+                }
+            }
+
+            playNext() {
+                if (this.playlist.length > 0) {
+                    this.currentIndex = (this.currentIndex + 1) % this.playlist.length;
+                    this.loadMedia(this.playlist[this.currentIndex]);
+                    this.updatePlaylist();
+                }
+            }
+
+            toggleMute() {
+                if (!this.currentMedia || this.currentMedia.tagName === 'IMG') return;
+                
+                this.currentMedia.muted = !this.currentMedia.muted;
+                this.muteBtn.innerHTML = this.currentMedia.muted ? '🔇' : '🔊';
+            }
+
+            setVolume(value) {
+                if (!this.currentMedia || this.currentMedia.tagName === 'IMG') return;
+                
+                this.currentMedia.volume = value / 100;
+            }
+
+            seek(e) {
+                if (!this.currentMedia || this.currentMedia.tagName === 'IMG') return;
+                
+                const rect = this.progressBar.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                this.currentMedia.currentTime = percent * this.currentMedia.duration;
+            }
+
+            updateProgress() {
+                if (!this.currentMedia || this.currentMedia.tagName === 'IMG') return;
+                
+                const percent = (this.currentMedia.currentTime / this.currentMedia.duration) * 100;
+                this.progressFill.style.width = percent + '%';
+                this.updateTimeDisplay();
+            }
+
+            updateTimeDisplay() {
+                if (!this.currentMedia || this.currentMedia.tagName === 'IMG') return;
+                
+                const current = this.formatTime(this.currentMedia.currentTime);
+                const duration = this.formatTime(this.currentMedia.duration);
+                this.timeDisplay.textContent = `${current} / ${duration}`;
+            }
+
+            formatTime(seconds) {
+                if (isNaN(seconds)) return '00:00';
+                
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            updatePlaylist() {
+                if (this.playlist.length <= 1) {
+                    this.playlistEl.classList.remove('show');
+                    return;
+                }
+                
+                this.playlistEl.innerHTML = this.playlist.map((file, index) => `
+                    <div class="playlist-item ${index === this.currentIndex ? 'active' : ''}" 
+                         onclick="player.playItem(${index})">
+                        ${index + 1}. ${file.name}
+                    </div>
+                `).join('');
+                
+                this.playlistEl.classList.add('show');
+            }
+
+            playItem(index) {
+                this.currentIndex = index;
+                this.loadMedia(this.playlist[index]);
+                this.updatePlaylist();
+            }
+
+            handleKeyboard(e) {
+                if (!this.currentMedia || this.currentMedia.tagName === 'IMG') return;
+                
+                switch(e.key) {
+                    case ' ':
+                        e.preventDefault();
+                        this.togglePlay();
+                        break;
+                    case 'ArrowLeft':
+                        this.currentMedia.currentTime -= 5;
+                        break;
+                    case 'ArrowRight':
+                        this.currentMedia.currentTime += 5;
+                        break;
+                    case 'ArrowUp':
+                        this.volumeSlider.value = Math.min(100, parseInt(this.volumeSlider.value) + 10);
+                        this.setVolume(this.volumeSlider.value);
+                        break;
+                    case 'ArrowDown':
+                        this.volumeSlider.value = Math.max(0, parseInt(this.volumeSlider.value) - 10);
+                        this.setVolume(this.volumeSlider.value);
+                        break;
+                }
+            }
+        }
+
+        // Initialize player
+        const player = new MediaPlayer();
+    </script>
+</body>
+</html>
